@@ -1,0 +1,38 @@
+name:                   Abstract-Impl-Redis
+version:                0.0.1
+stability:              provisional
+license:                BSD3
+license-file:           LICENSE
+
+cabal-version:          >= 1.8
+build-type:             Simple
+
+author:                 Andrew Darqui <andrew.darqui@gmail.com>
+maintainer:             Andrew Darqui <andrew.darqui@gmail.com>
+homepage:               github.com/adarqui/Abstract-Impl-Redis
+
+category:               Experimental
+synopsis:               Abstract
+
+Library
+ hs-source-dirs:        src
+ exposed-modules:
+                        Abstract.Utilities.Redis
+                        Abstract.Utilities.Redis.Helpers
+
+                        Abstract.Impl.Redis.Counter
+                        Abstract.Impl.Redis.Counter.Inc
+                        Abstract.Impl.Redis.Counter.Dec
+                        Abstract.Impl.Redis.Counter.Get
+                        Abstract.Impl.Redis.Counter.Internal
+
+                        Abstract.Impl.Redis.Queue
+                        Abstract.Impl.Redis.Queue.Enq
+                        Abstract.Impl.Redis.Queue.Deq
+
+                        Abstract.Impl.Redis.Stack
+                        Abstract.Impl.Redis.Stack.Push
+                        Abstract.Impl.Redis.Stack.Pop
+
+ build-depends:         base >= 3 && <5, bytestring, hedis, Abstract-Interfaces
+ ghc-options:           -Wall -rtsopts
