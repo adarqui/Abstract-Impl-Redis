@@ -34,5 +34,5 @@ Library
                         Abstract.Impl.Redis.Stack.Push
                         Abstract.Impl.Redis.Stack.Pop
 
- build-depends:         base >= 3 && <5, bytestring, hedis, Abstract-Interfaces
+ build-depends:         base >= 3 && <5, bytestring, hedis, Abstract-Interfaces, DevUtils-Parser, DevUtils-Redis
  ghc-options:           -Wall -rtsopts
