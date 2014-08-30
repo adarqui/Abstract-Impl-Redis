@@ -29,10 +29,12 @@ Library
                         Abstract.Impl.Redis.Queue
                         Abstract.Impl.Redis.Queue.Enq
                         Abstract.Impl.Redis.Queue.Deq
+                        Abstract.Impl.Redis.Queue.Internal
 
                         Abstract.Impl.Redis.Stack
                         Abstract.Impl.Redis.Stack.Push
                         Abstract.Impl.Redis.Stack.Pop
+                        Abstract.Impl.Redis.Stack.Internal
 
  build-depends:         base >= 3 && <5, bytestring, hedis, Abstract-Interfaces
  ghc-options:           -Wall -rtsopts
