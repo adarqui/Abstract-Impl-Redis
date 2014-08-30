@@ -3,6 +3,7 @@
 module Abstract.Impl.Redis.Counter.Internal (
  module Abstract.Interfaces.Counter,
  CounterRedisWrapper,
+ counterRedisWrapper'Int,
  defaultCounterRedisWrapper'Int,
  mkCounter'Redis'Int
 ) where
@@ -25,11 +26,11 @@ data CounterRedisWrapper t = CounterRedisWrapper {
 }
 
 
-mkCounter'Redis'Int :: String -> Int -> IO (Counter IO (CounterRedisWrapper Int) Int)
-mkCounter'Redis'Int cname t = do
- let crw = defaultCounterRedisWrapper'Int cname t
- conn <- H.open $ _info crw
- return $ defaultCounterWrapper'Int cname $ crw { _conn = conn }
+mkCounter'Redis'Int :: Int -> CounterRedisWrapper Int -> IO (Counter IO (CounterRedisWrapper Int) Int)
+mkCounter'Redis'Int n crw = do
+ let crw' = crw { _n = n }
+ conn <- H.open $ _info crw'
+ return $ defaultCounterWrapper'Int $ crw' { _conn = conn }
 
 
 incr'Int :: CounterRedisWrapper Int -> IO Int
@@ -39,7 +40,6 @@ incr'Int w = do
   (Left _) -> throw OperationFailed
   (Right v') -> v'
   
-
 
 incrBy'Int :: CounterRedisWrapper Int -> Int -> IO Int
 incrBy'Int w n = do
@@ -90,15 +90,18 @@ gentleReset' w = do
   (Right _) -> ()
 
 
-defaultCounterRedisWrapper'Int :: String -> Int -> CounterRedisWrapper Int
-defaultCounterRedisWrapper'Int cname n = CounterRedisWrapper { _info=R.defaultConnectInfo, _key=B.pack cname, _n=n }
+defaultCounterRedisWrapper'Int :: String -> CounterRedisWrapper Int
+defaultCounterRedisWrapper'Int cname = counterRedisWrapper'Int cname R.defaultConnectInfo
 
 
-defaultCounterWrapper'Int :: String -> CounterRedisWrapper Int -> Counter IO (CounterRedisWrapper Int) Int
-defaultCounterWrapper'Int cname w = do
+counterRedisWrapper'Int :: String -> R.ConnectInfo -> CounterRedisWrapper Int
+counterRedisWrapper'Int cname ci = CounterRedisWrapper { _info=ci, _key=B.pack cname }
+
+
+defaultCounterWrapper'Int :: CounterRedisWrapper Int -> Counter IO (CounterRedisWrapper Int) Int
+defaultCounterWrapper'Int w = do
  Counter {
   _c = w,
-  _cname = cname,
   _incr = incr'Int,
   _incrBy = incrBy'Int,
   _decr = decr'Int,
