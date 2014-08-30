@@ -7,6 +7,6 @@ import Abstract.Interfaces.Counter.Get
 
 import qualified Abstract.Impl.Redis.Counter.Internal as REDIS (mkCounter'Redis'Int)
 
-mkCounter'Redis'Int'Get s t = do
- v <- REDIS.mkCounter'Redis'Int s t
+mkCounter'Redis'Int'Get t w = do
+ v <- REDIS.mkCounter'Redis'Int t w
  return $ counterToGet v
