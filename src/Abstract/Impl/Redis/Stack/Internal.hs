@@ -3,6 +3,7 @@
 module Abstract.Impl.Redis.Stack.Internal (
  module Abstract.Interfaces.Stack,
  StackRedis,
+ stackRedis,
  defaultStackRedis,
  mkStack'Redis
 ) where
