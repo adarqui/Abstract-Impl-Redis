@@ -80,12 +80,12 @@ destroy' w = do
   (Right _) -> ()
 
 
-defaultStackRedis :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> StackRedis t
-defaultStackRedis sname t pack unpack = stackRedis sname t pack unpack R.defaultConnectInfo
+defaultStackRedis :: String -> (t -> B.ByteString) -> (B.ByteString -> t) -> StackRedis t
+defaultStackRedis sname pack unpack = stackRedis sname pack unpack R.defaultConnectInfo
 
 
-stackRedis :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> R.ConnectInfo -> StackRedis t
-stackRedis sname _ pack unpack ci = StackRedis { _info = ci, _key = B.pack sname, _pack = pack, _unpack = unpack }
+stackRedis :: String -> (t -> B.ByteString) -> (B.ByteString -> t) -> R.ConnectInfo -> StackRedis t
+stackRedis sname pack unpack ci = StackRedis { _info = ci, _key = B.pack sname, _pack = pack, _unpack = unpack }
 
 
 buildStack :: StackRedis t -> Stack IO t

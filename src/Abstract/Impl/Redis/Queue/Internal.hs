@@ -81,12 +81,12 @@ destroy' w = do
   (Right _) -> ()
 
 
-defaultQueueRedis :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> QueueRedis t
-defaultQueueRedis qname t pack unpack = queueRedis qname t pack unpack R.defaultConnectInfo
+defaultQueueRedis :: String -> (t -> B.ByteString) -> (B.ByteString -> t) -> QueueRedis t
+defaultQueueRedis qname pack unpack = queueRedis qname pack unpack R.defaultConnectInfo
 
 
-queueRedis :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> R.ConnectInfo -> QueueRedis t
-queueRedis qname _ pack unpack ci = QueueRedis { _info = ci, _key = B.pack qname, _pack = pack, _unpack = unpack }
+queueRedis :: String -> (t -> B.ByteString) -> (B.ByteString -> t) -> R.ConnectInfo -> QueueRedis t
+queueRedis qname pack unpack ci = QueueRedis { _info = ci, _key = B.pack qname, _pack = pack, _unpack = unpack }
 
 
 buildQueue :: QueueRedis t -> Queue IO t
