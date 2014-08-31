@@ -2,8 +2,8 @@
 
 module Abstract.Impl.Redis.Stack.Internal (
  module Abstract.Interfaces.Stack,
- StackRedisWrapper,
- defaultStackRedisWrapper,
+ StackRedis,
+ defaultStackRedis,
  mkStack'Redis
 ) where
 
@@ -17,7 +17,7 @@ import qualified Database.Redis as R
 import qualified Data.ByteString.Char8 as B
 
 
-data StackRedisWrapper t = StackRedisWrapper {
+data StackRedis t = StackRedis {
  _info :: R.ConnectInfo,
  _conn :: H.ConnectionWrapper,
  _key :: B.ByteString,
@@ -25,14 +25,13 @@ data StackRedisWrapper t = StackRedisWrapper {
  _pack :: t -> B.ByteString
 }
 
-mkStack'Redis :: String -> t -> ({-pack-}t->B.ByteString) -> ({-unpack-}B.ByteString->t) -> IO (Stack IO (StackRedisWrapper t) t)
-mkStack'Redis sname t pack unpack = do
- let srw = defaultStackRedisWrapper sname t pack unpack
+mkStack'Redis :: StackRedis t -> IO (Stack IO t)
+mkStack'Redis srw = do
  conn <- H.open $ _info srw
- return $ defaultStackWrapper sname $ srw { _conn = conn }
+ return $ buildStack $ srw { _conn = conn }
  
 
-push' :: StackRedisWrapper t -> t -> IO ()
+push' :: StackRedis t -> t -> IO ()
 push' w t = do
  v <- H.push (_conn w) (_key w) [((_pack w) t)]
  return $ case v of
@@ -40,7 +39,7 @@ push' w t = do
   (Right _) -> ()
 
 
-pushBatch' :: StackRedisWrapper t -> [t] -> IO ()
+pushBatch' :: StackRedis t -> [t] -> IO ()
 pushBatch' w ts = do
  v <- H.pushBatch (_conn w) (_key w) (map (_pack w) ts)
  return $ case v of
@@ -48,7 +47,7 @@ pushBatch' w ts = do
   (Right _) -> ()
 
 
-pop' :: StackRedisWrapper t -> IO (Maybe t)
+pop' :: StackRedis t -> IO (Maybe t)
 pop' w = do
  v <- H.pop (_conn w) (_key w)
  return $ case v of
@@ -57,7 +56,7 @@ pop' w = do
   (Right (Just v')) -> Just $ _unpack w $ v'
 
 
-drain' :: StackRedisWrapper t -> IO [t]
+drain' :: StackRedis t -> IO [t]
 drain' w = do
  v <- H.popBatch (_conn w) (_key w)
  return $ case v of
@@ -65,7 +64,7 @@ drain' w = do
   (Right v') -> map (_unpack w) v'
 
 
-size' :: StackRedisWrapper t -> IO Int
+size' :: StackRedis t -> IO Int
 size' w = do
  v <- H.llen (_conn w) (_key w)
  return $ case v of
@@ -73,7 +72,7 @@ size' w = do
   (Right v') -> v'
 
 
-destroy' :: StackRedisWrapper t -> IO ()
+destroy' :: StackRedis t -> IO ()
 destroy' w = do
  v <- H.del (_conn w) (_key w)
  return $ case v of
@@ -81,19 +80,21 @@ destroy' w = do
   (Right _) -> ()
 
 
-defaultStackRedisWrapper :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> StackRedisWrapper t
-defaultStackRedisWrapper sname _ pack unpack = StackRedisWrapper { _info = R.defaultConnectInfo, _key = B.pack sname, _pack = pack, _unpack = unpack }
+defaultStackRedis :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> StackRedis t
+defaultStackRedis sname t pack unpack = stackRedis sname t pack unpack R.defaultConnectInfo
 
-defaultStackWrapper :: String -> StackRedisWrapper t -> Stack IO (StackRedisWrapper t) t
-defaultStackWrapper sname w =
+
+stackRedis :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> R.ConnectInfo -> StackRedis t
+stackRedis sname _ pack unpack ci = StackRedis { _info = ci, _key = B.pack sname, _pack = pack, _unpack = unpack }
+
+
+buildStack :: StackRedis t -> Stack IO t
+buildStack w =
  Stack {
-  _s = w,
-  _sname = sname,
-  _push = push',
-  _pushBatch = pushBatch',
-  _pop = pop',
-  _drain = drain',
-  _size = size',
-  _destroy = destroy'
- }
- 
+  _push = push' w,
+  _pushBatch = pushBatch' w,
+  _pop = pop' w,
+  _drain = drain' w,
+  _size = size' w,
+  _destroy = destroy' w
+ } 

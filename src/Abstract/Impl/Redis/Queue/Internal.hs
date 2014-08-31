@@ -2,8 +2,8 @@
 
 module Abstract.Impl.Redis.Queue.Internal (
  module Abstract.Interfaces.Queue,
- QueueRedisWrapper,
- defaultQueueRedisWrapper,
+ QueueRedis,
+ defaultQueueRedis,
  mkQueue'Redis
 ) where
 
@@ -16,7 +16,7 @@ import qualified Database.Redis as R
 import qualified Data.ByteString.Char8 as B
 
 
-data QueueRedisWrapper t = QueueRedisWrapper {
+data QueueRedis t = QueueRedis {
  _info :: R.ConnectInfo,
  _conn :: H.ConnectionWrapper,
  _key :: B.ByteString,
@@ -25,14 +25,13 @@ data QueueRedisWrapper t = QueueRedisWrapper {
 }
 
 
-mkQueue'Redis :: String -> t -> ({-pack-}t->B.ByteString) -> ({-unpack-}B.ByteString->t) -> IO (Queue IO (QueueRedisWrapper t) t)
-mkQueue'Redis qname t pack unpack = do
- let qrw = defaultQueueRedisWrapper qname t pack unpack
+mkQueue'Redis :: QueueRedis t -> IO (Queue IO t)
+mkQueue'Redis qrw = do
  conn <- H.open $ _info qrw
- return $ defaultQueueWrapper qname $ qrw { _conn = conn }
+ return $ buildQueue $ qrw { _conn = conn }
  
 
-enqueue' :: QueueRedisWrapper t -> t -> IO ()
+enqueue' :: QueueRedis t -> t -> IO ()
 enqueue' w t = do
  v <- H.enqueue (_conn w) (_key w) [((_pack w) t)]
  return $ case v of
@@ -40,7 +39,7 @@ enqueue' w t = do
   (Right _) -> ()
 
 
-enqueueBatch' :: QueueRedisWrapper t -> [t] -> IO ()
+enqueueBatch' :: QueueRedis t -> [t] -> IO ()
 enqueueBatch' w ts = do
  v <- H.enqueueBatch (_conn w) (_key w) (map (_pack w) ts)
  return $ case v of
@@ -48,7 +47,7 @@ enqueueBatch' w ts = do
   (Right _) -> ()
 
 
-dequeue' :: QueueRedisWrapper t -> IO (Maybe t)
+dequeue' :: QueueRedis t -> IO (Maybe t)
 dequeue' w = do
  v <- H.dequeue (_conn w) (_key w)
  return $ case v of
@@ -57,7 +56,7 @@ dequeue' w = do
   (Right (Just v')) -> Just $ _unpack w $ v'
 
 
-drain' :: QueueRedisWrapper t -> IO [t]
+drain' :: QueueRedis t -> IO [t]
 drain' w = do
  v <- H.dequeueBatch (_conn w) (_key w)
  return $ case v of
@@ -65,7 +64,7 @@ drain' w = do
   (Right v') -> map (_unpack w) v'
 
 
-size' :: QueueRedisWrapper t -> IO Int
+size' :: QueueRedis t -> IO Int
 size' w = do
  v <- H.llen (_conn w) (_key w)
  return $ case v of
@@ -73,7 +72,7 @@ size' w = do
   (Right v') -> v'
 
 
-destroy' :: QueueRedisWrapper t -> IO ()
+destroy' :: QueueRedis t -> IO ()
 destroy' w = do
  v <- H.del (_conn w) (_key w)
  return $ case v of
@@ -81,19 +80,21 @@ destroy' w = do
   (Right _) -> ()
 
 
-defaultQueueRedisWrapper :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> QueueRedisWrapper t
-defaultQueueRedisWrapper qname _ pack unpack = QueueRedisWrapper { _info = R.defaultConnectInfo, _key = B.pack qname, _pack = pack, _unpack = unpack }
+defaultQueueRedis :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> QueueRedis t
+defaultQueueRedis qname t pack unpack = queueRedis qname t pack unpack R.defaultConnectInfo
 
 
-defaultQueueWrapper :: String -> QueueRedisWrapper t -> Queue IO (QueueRedisWrapper t) t
-defaultQueueWrapper qname w =
+queueRedis :: String -> t -> (t -> B.ByteString) -> (B.ByteString -> t) -> R.ConnectInfo -> QueueRedis t
+queueRedis qname _ pack unpack ci = QueueRedis { _info = ci, _key = B.pack qname, _pack = pack, _unpack = unpack }
+
+
+buildQueue :: QueueRedis t -> Queue IO t
+buildQueue w =
  Queue {
-  _q = w,
-  _qname = qname,
-  _enqueue = enqueue',
-  _enqueueBatch = enqueueBatch',
-  _dequeue = dequeue',
-  _drain = drain',
-  _size = size',
-  _destroy = destroy'
+  _enqueue = enqueue' w,
+  _enqueueBatch = enqueueBatch' w,
+  _dequeue = dequeue' w,
+  _drain = drain' w,
+  _size = size' w,
+  _destroy = destroy' w
  }
