@@ -3,6 +3,7 @@
 module Abstract.Impl.Redis.Queue.Internal (
  module Abstract.Interfaces.Queue,
  QueueRedis,
+ queueRedis,
  defaultQueueRedis,
  mkQueue'Redis
 ) where
