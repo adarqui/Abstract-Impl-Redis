@@ -2,9 +2,9 @@
 
 module Abstract.Impl.Redis.Counter.Internal (
  module Abstract.Interfaces.Counter,
- CounterRedisWrapper,
- counterRedisWrapper'Int,
- defaultCounterRedisWrapper'Int,
+ CounterRedis,
+ counterRedis'Int,
+ defaultCounterRedis'Int,
  mkCounter'Redis'Int
 ) where
 
@@ -18,7 +18,7 @@ import qualified Database.Redis as R
 import qualified Data.ByteString.Char8 as B
 
 
-data CounterRedisWrapper t = CounterRedisWrapper {
+data CounterRedis t = CounterRedis {
  _info :: R.ConnectInfo,
  _conn :: H.ConnectionWrapper,
  _key :: B.ByteString,
@@ -26,14 +26,14 @@ data CounterRedisWrapper t = CounterRedisWrapper {
 }
 
 
-mkCounter'Redis'Int :: Int -> CounterRedisWrapper Int -> IO (Counter IO (CounterRedisWrapper Int) Int)
+mkCounter'Redis'Int :: Int -> CounterRedis Int -> IO (Counter IO Int)
 mkCounter'Redis'Int n crw = do
  let crw' = crw { _n = n }
  conn <- H.open $ _info crw'
- return $ defaultCounterWrapper'Int $ crw' { _conn = conn }
+ return $ defaultCounter'Redis'Int $ crw' { _conn = conn }
 
 
-incr'Int :: CounterRedisWrapper Int -> IO Int
+incr'Int :: CounterRedis Int -> IO Int
 incr'Int w = do
  v <- H.incr (_conn w) (_key w)
  return $ case v of
@@ -41,7 +41,7 @@ incr'Int w = do
   (Right v') -> v'
   
 
-incrBy'Int :: CounterRedisWrapper Int -> Int -> IO Int
+incrBy'Int :: CounterRedis Int -> Int -> IO Int
 incrBy'Int w n = do
  v <- H.incrBy (_conn w) (_key w) n 
  return $ case v of
@@ -49,7 +49,7 @@ incrBy'Int w n = do
   (Right v') -> v'
 
 
-decr'Int :: CounterRedisWrapper Int -> IO Int
+decr'Int :: CounterRedis Int -> IO Int
 decr'Int w = do
  v <- H.decr (_conn w) (_key w)
  return $ case v of
@@ -57,7 +57,7 @@ decr'Int w = do
   (Right v') -> v'
 
 
-decrBy'Int :: CounterRedisWrapper Int -> Int -> IO Int
+decrBy'Int :: CounterRedis Int -> Int -> IO Int
 decrBy'Int w n = do
  v <- H.decrBy (_conn w) (_key w) n 
  return $ case v of
@@ -65,7 +65,7 @@ decrBy'Int w n = do
   (Right v') -> v'
 
 
-get' :: CounterRedisWrapper Int -> IO (Maybe Int)
+get' :: CounterRedis Int -> IO (Maybe Int)
 get' w = do
  v <- H.getInt (_conn w) (_key w)
  return $ case v of
@@ -74,7 +74,7 @@ get' w = do
   (Right (Just v')) -> Just v'
 
 
-reset' :: CounterRedisWrapper Int -> IO ()
+reset' :: CounterRedis Int -> IO ()
 reset' w = do
  v <- H.set (_conn w) (_key w) (B.pack $ show $ _n w)
  return $ case v of
@@ -82,7 +82,7 @@ reset' w = do
   (Right _) -> ()
 
 
-gentleReset' :: CounterRedisWrapper Int -> IO ()
+gentleReset' :: CounterRedis Int -> IO ()
 gentleReset' w = do
  v <- H.setnx (_conn w) (_key w) (B.pack $ show $ _n w)
  return $ case v of
@@ -90,23 +90,22 @@ gentleReset' w = do
   (Right _) -> ()
 
 
-defaultCounterRedisWrapper'Int :: String -> CounterRedisWrapper Int
-defaultCounterRedisWrapper'Int cname = counterRedisWrapper'Int cname R.defaultConnectInfo
+defaultCounterRedis'Int :: String -> CounterRedis Int
+defaultCounterRedis'Int cname = counterRedis'Int cname R.defaultConnectInfo
 
 
-counterRedisWrapper'Int :: String -> R.ConnectInfo -> CounterRedisWrapper Int
-counterRedisWrapper'Int cname ci = CounterRedisWrapper { _info=ci, _key=B.pack cname }
+counterRedis'Int :: String -> R.ConnectInfo -> CounterRedis Int
+counterRedis'Int cname ci = CounterRedis { _info=ci, _key=B.pack cname }
 
 
-defaultCounterWrapper'Int :: CounterRedisWrapper Int -> Counter IO (CounterRedisWrapper Int) Int
-defaultCounterWrapper'Int w = do
+defaultCounter'Redis'Int :: CounterRedis Int -> Counter IO Int
+defaultCounter'Redis'Int w = do
  Counter {
-  _c = w,
-  _incr = incr'Int,
-  _incrBy = incrBy'Int,
-  _decr = decr'Int,
-  _decrBy = decrBy'Int,
-  _get = get',
-  _reset = reset',
-  _gentleReset = gentleReset'
+  _incr = incr'Int w,
+  _incrBy = incrBy'Int w,
+  _decr = decr'Int w,
+  _decrBy = decrBy'Int w,
+  _get = get' w,
+  _reset = reset' w,
+  _gentleReset = gentleReset' w
  }
