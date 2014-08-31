@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-
 module Abstract.Impl.Redis.Queue.Internal (
  module Abstract.Interfaces.Queue,
  QueueRedis,
