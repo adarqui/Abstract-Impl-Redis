@@ -56,6 +56,15 @@ dequeue' w = do
   (Right (Just v')) -> Just $ _unpack w $ v'
 
 
+blDequeue' :: QueueRedis t -> IO (Maybe t)
+blDequeue' w = do
+ v <- H.blDequeue (_conn w) [(_key w)]
+ return $ case v of
+  (Left _) -> throw OperationFailed
+  (Right Nothing) -> Nothing
+  (Right (Just v')) -> Just $ _unpack w $ snd v'
+
+
 drain' :: QueueRedis t -> IO [t]
 drain' w = do
  v <- H.dequeueBatch (_conn w) (_key w)
@@ -94,6 +103,7 @@ buildQueue w =
   _enqueue = enqueue' w,
   _enqueueBatch = enqueueBatch' w,
   _dequeue = dequeue' w,
+  _blDequeue = blDequeue' w,
   _drain = drain' w,
   _size = size' w,
   _destroy = destroy' w
